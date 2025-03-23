@@ -7,34 +7,53 @@ This repo contains programs to implement a multi-threaded TCP chat server and cl
 * ClientListener.java receives responses from the server and displays them
 * MtServer.java listens for client connections and creates a ClientHandler for each new client
 * ClientHandler.java receives messages from a client and relays it to the other clients.
-
-Use these files as a stating point do develop a trivia game.  
-
+* Client.java stores information about each connected client including their socket and username
 
 ## Identifying Information
 
-* Name:
-* Student ID:
-* Email:
-* Course:
-* Assignment:
+* Name:Gabriel Giancarlo [Team Member 3]
+* Student ID: 2405449 [ID]
+* Email:Giancarlo@gmail.com [Email]
+* Course: CPSC 353
+* Assignment: Chat Game Project
+
+*ADD YOUR INFO HERE
+
+## Contributions
+### Team Member 1:
+* Created the Client class
+* Updated the README.md file
+
+### Team Member 2:
+* Modified MtServer.java to use the Client class
+* Changed the server port to 9004
+
+### Team Member 3:
+* Modified ClientHandler.java to handle usernames
+* Updated MtClient.java and ClientListener.java
 
 ## Source Files
 
-*
+* Client.java
+* MtServer.java
+* MtClient.java
+* ClientHandler.java
+* ClientListener.java
 
 ## References
 
-*
+* Original chatgame repository from ChapmanCPSC353
 
 ## Known Errors
 
-*
+* None
 
-## Build Insructions
+## Build Instructions
 
-*
+* Compile all java files: `javac *.java`
 
 ## Execution Instructions
 
-*
+* Start the server first: `java MtServer`
+* Start multiple clients: `java MtClient`
+* Follow prompts to enter username and begin chatting
