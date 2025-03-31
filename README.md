@@ -23,6 +23,12 @@ This repo contains programs to implement a multi-threaded TCP chat server and cl
 * Course: CPSC 353
 * Assignment: Chat Game Project 
 
+* Name: Irene Ichwan
+* Student ID: 002452538
+* Email: ichwan@chapman.edu
+* Course: CPSC 353
+* Assignment: Chat Game Project 
+
 *ADD YOUR INFO HERE
 
 ## Contributions
