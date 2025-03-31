@@ -22,7 +22,7 @@ public class ClientListener implements Runnable {
   }
 
   /**
-   * Gets message from server and dsiplays it to the user.
+   * Gets message from server and displays it to the user.
    */
   public void run() {
     try {
@@ -31,7 +31,7 @@ public class ClientListener implements Runnable {
       while (true) {
         // Get data sent from the server
         String serverText = serverInput.readLine();
-        if (serverInput != null) {
+        if (serverText != null) {
           System.out.println(serverText);
         } else {
           // Connection was lost
