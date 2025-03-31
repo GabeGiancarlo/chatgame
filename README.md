@@ -17,18 +17,24 @@ This repo contains programs to implement a multi-threaded TCP chat server and cl
 * Course: CPSC 353
 * Assignment: Chat Game Project
 
+* Name: Dylan Massaro
+* Student ID: 002444410
+* Email: dmassaro@chapman.edu
+* Course: CPSC 353
+* Assignment: Chat Game Project 
+
 *ADD YOUR INFO HERE
 
 ## Contributions
-### Team Member 1:
+### Team Member 1: Gabriel Giancarlo
 * Created the Client class
 * Updated the README.md file
 
-### Team Member 2:
+### Team Member 2: Dylan Massaro
 * Modified MtServer.java to use the Client class
 * Changed the server port to 9004
 
-### Team Member 3:
+### Team Member 3: Irene
 * Modified ClientHandler.java to handle usernames
 * Updated MtClient.java and ClientListener.java
 
