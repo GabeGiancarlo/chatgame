@@ -11,7 +11,7 @@ This repo contains programs to implement a multi-threaded TCP chat server and cl
 
 ## Identifying Information
 
-* Name:Gabriel Giancarlo [Team Member 3]
+* Name:Gabriel Giancarlo
 * Student ID: 2405449 [ID]
 * Email:Giancarlo@gmail.com [Email]
 * Course: CPSC 353
