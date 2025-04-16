@@ -5,6 +5,7 @@ import java.io.InputStreamReader;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Scanner;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * ClientHandler.java
@@ -35,8 +36,20 @@ public class ClientHandler implements Runnable {
       DataOutputStream clientOutput = new DataOutputStream(connectionSock.getOutputStream());
       
       // Prompt for username
+      String username;
+      boolean isUsernameTaken;
       clientOutput.writeBytes("Welcome to the chat! Please enter your username:\n");
-      String username = clientInput.readLine();
+      do {
+        username = clientInput.readLine();
+        isUsernameTaken = false;
+        for (Client c : clientList) {
+          if (c.username.equals(username)) {
+              isUsernameTaken = true;
+              clientOutput.writeBytes("Username '" + username + "' is taken. Try another:\n");
+              break;
+          }
+        }
+      } while (isUsernameTaken);
       
       // Create a new Client object and add to the list
       Client newClient = new Client(connectionSock, username);
@@ -60,22 +73,61 @@ public class ClientHandler implements Runnable {
           // Turn around and output this data
           // to all other clients except the one
           // that sent us this information
+
+          String clientCommand = clientText.trim().toLowerCase();
+          boolean isCommand = true;
+          switch (clientCommand) {
+            case "who?":
+              StringBuilder users = new StringBuilder();
+              for (Client c : clientList) {
+                  if (c.connectionSock != connectionSock) { // Exclude self
+                      users.append(c.username).append(", ");
+                  }
+              }
+              // response to who command
+              String response = users.length() > 0 ? 
+                  "Connected users: " + users.substring(0, users.length()-2) : 
+                  "No other users connected";
+              // send to requesting client only
+              clientOutput.writeBytes(response + "\n");
+              break;
+            case "goodbye":
+              String exitMessage = username + " has left the chat";
+              System.out.println(exitMessage);
+              for (Client c : new ArrayList<>(clientList)) {
+                if (c.connectionSock != connectionSock) {
+                  try {
+                    DataOutputStream output = new DataOutputStream(c.connectionSock.getOutputStream());
+                    output.writeBytes(exitMessage + "\n");
+                  } catch (IOException e) {
+                    clientList.remove(c); // Remove dead clients 
+                  }
+                }
+              }
+              clientList.remove(newClient);
+              connectionSock.close();
+              return;
+            default:
+              isCommand = false;
+              break;
+          } 
+          if (isCommand) continue;
           String messageWithUsername = username + ": " + clientText;
-          for (Client c : clientList) {
-            if (c.connectionSock != connectionSock) {
-              DataOutputStream output = new DataOutputStream(c.connectionSock.getOutputStream());
-              output.writeBytes(messageWithUsername + "\n");
+            for (Client c : clientList) {
+              if (c.connectionSock != connectionSock) {
+                DataOutputStream output = new DataOutputStream(c.connectionSock.getOutputStream());
+                output.writeBytes(messageWithUsername + "\n");
+              }
             }
+          } else {
+            // Connection was lost
+            System.out.println("Closing connection for socket " + connectionSock);
+            // Remove from arraylist
+            clientList.remove(newClient);
+            connectionSock.close();
+            break;
           }
-        } else {
-          // Connection was lost
-          System.out.println("Closing connection for socket " + connectionSock);
-          // Remove from arraylist
-          clientList.remove(newClient);
-          connectionSock.close();
-          break;
         }
-      }
     } catch (Exception e) {
       System.out.println("Error: " + e.toString());
       // Find and remove the client with this socket
