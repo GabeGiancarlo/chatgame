@@ -2,41 +2,40 @@ import java.io.BufferedReader;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.net.Socket;
 import java.util.ArrayList;
 
 /**
- * ClientHandler.java
+ * ClientHandler.java This class handles communication between the client
  *
- * <p>This class handles communication between the client and the server. It runs in a separate
- * thread but has a link to a common list of clients to handle broadcast.
+ * <p>and the server. It runs in a separate thread but has a link to a common list of clients to
+ * handle broadcast.
  */
 public class ClientHandler implements Runnable {
-  private Socket connectionSock = null;
+  private Client myClient = null;
   private ArrayList<Client> clientList;
 
-  ClientHandler(Socket sock, ArrayList<Client> clientList) {
-    this.connectionSock = sock;
+  ClientHandler(Client client, ArrayList<Client> clientList) {
+    this.myClient = client;
     this.clientList = clientList; // Keep reference to master list
   }
 
-  /** received input from a client. sends it to other clients. */
   public void run() {
     try {
-      System.out.println("Connection made with socket " + connectionSock);
+      System.out.println("Connection made with socket " + myClient.connectionSock);
       BufferedReader clientInput =
-          new BufferedReader(new InputStreamReader(connectionSock.getInputStream()));
-      DataOutputStream clientOutput = new DataOutputStream(connectionSock.getOutputStream());
+          new BufferedReader(new InputStreamReader(myClient.connectionSock.getInputStream()));
+      DataOutputStream clientOutput =
+          new DataOutputStream(myClient.connectionSock.getOutputStream());
 
-      // Prompt for username
+      // Prompt for unique username
+      clientOutput.writeBytes("Welcome to the chat! Please enter your username:\n");
       String username;
       boolean isUsernameTaken;
-      clientOutput.writeBytes("Welcome to the chat! Please enter your username:\n");
       do {
         username = clientInput.readLine();
         isUsernameTaken = false;
         for (Client c : clientList) {
-          if (c.username.equals(username)) {
+          if (c.username.equalsIgnoreCase(username)) {
             isUsernameTaken = true;
             clientOutput.writeBytes("Username '" + username + "' is taken. Try another:\n");
             break;
@@ -44,96 +43,88 @@ public class ClientHandler implements Runnable {
         }
       } while (isUsernameTaken);
 
-      // Create a new Client object and add to the list
-      Client newClient = new Client(connectionSock, username);
-      clientList.add(newClient);
+      // Assign unique username to myClient
+      myClient.username = username;
 
-      // Notify all clients that a new user has joined
-      String joinMessage = username + " has joined the chat";
+      // Add to client list
+      clientList.add(myClient);
+
+      // Notify others
+      String joinMessage = myClient.username + " has joined the chat";
       System.out.println(joinMessage);
       for (Client c : clientList) {
-        if (c.connectionSock != connectionSock) {
+        if (c != myClient) {
           DataOutputStream output = new DataOutputStream(c.connectionSock.getOutputStream());
           output.writeBytes(joinMessage + "\n");
         }
       }
 
       while (true) {
-        // Get data sent from a client
         String clientText = clientInput.readLine();
-        if (clientText != null) {
-          System.out.println("Received from " + username + ": " + clientText);
-          // Turn around and output this data
-          // to all other clients except the one
-          // that sent us this information
 
-          String clientCommand = clientText.trim().toLowerCase();
-          boolean isCommand = true;
-          switch (clientCommand) {
+        if (clientText != null) {
+          System.out.println("Received from " + myClient.username + ": " + clientText);
+          String input = clientText.trim().toLowerCase();
+
+          switch (input) {
             case "who?":
-              StringBuilder users = new StringBuilder();
+              // Send list of usernames to the requester only
+              StringBuilder userList = new StringBuilder("Connected users:\n");
               for (Client c : clientList) {
-                if (c.connectionSock != connectionSock) { // Exclude self
-                  users.append(c.username).append(", ");
-                }
+                userList.append(c.username).append("\n");
               }
-              // response to who command
-              String response =
-                  users.length() > 0
-                      ? "Connected users: " + users.substring(0, users.length() - 2)
-                      : "No other users connected";
-              // send to requesting client only
-              clientOutput.writeBytes(response + "\n");
+              clientOutput.writeBytes(userList.toString() + "\n");
               break;
+
             case "goodbye":
-              String exitMessage = username + " has left the chat";
+              String exitMessage = myClient.username + " has left the chat";
               System.out.println(exitMessage);
+              // Notify others
               for (Client c : new ArrayList<>(clientList)) {
-                if (c.connectionSock != connectionSock) {
+                if (c != myClient) {
                   try {
                     DataOutputStream output =
                         new DataOutputStream(c.connectionSock.getOutputStream());
                     output.writeBytes(exitMessage + "\n");
                   } catch (IOException e) {
-                    clientList.remove(c); // Remove dead clients
+                    clientList.remove(c);
                   }
                 }
               }
-              clientList.remove(newClient);
-              connectionSock.close();
+              clientList.remove(myClient);
+              myClient.connectionSock.close();
               return;
+
             default:
-              isCommand = false;
+              // Broadcast message
+              String messageWithUsername = myClient.username + ": " + clientText;
+              for (Client c : clientList) {
+                if (c != myClient) {
+                  DataOutputStream output =
+                      new DataOutputStream(c.connectionSock.getOutputStream());
+                  output.writeBytes(messageWithUsername + "\n");
+                }
+              }
               break;
           }
-          if (isCommand) {
-            continue;
-          }
-          String messageWithUsername = username + ": " + clientText;
-          for (Client c : clientList) {
-            if (c.connectionSock != connectionSock) {
-              DataOutputStream output = new DataOutputStream(c.connectionSock.getOutputStream());
-              output.writeBytes(messageWithUsername + "\n");
-            }
-          }
+
         } else {
-          // Connection was lost
-          System.out.println("Closing connection for socket " + connectionSock);
-          // Remove from arraylist
-          clientList.remove(newClient);
-          connectionSock.close();
+          // Disconnected
+          System.out.println("Closing connection for socket " + myClient.connectionSock);
+          clientList.remove(myClient);
+          myClient.connectionSock.close();
           break;
         }
       }
+
     } catch (Exception e) {
       System.out.println("Error: " + e.toString());
-      // Find and remove the client with this socket
       for (int i = 0; i < clientList.size(); i++) {
-        if (clientList.get(i).connectionSock == connectionSock) {
+        if (clientList.get(i).connectionSock == myClient.connectionSock) {
           clientList.remove(i);
           break;
         }
       }
     }
   }
-} // ClientHandler for MtServer.java
+}

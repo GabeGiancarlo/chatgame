@@ -34,7 +34,9 @@ public class MtServer {
       while (true) {
         Socket connectionSock = serverSock.accept();
         // Send to ClientHandler the socket and arraylist of all clients
-        ClientHandler handler = new ClientHandler(connectionSock, this.clientList);
+        Client tempClient = new Client(connectionSock, "");
+        ClientHandler handler = new ClientHandler(tempClient, this.clientList);
+
         Thread theThread = new Thread(handler);
         theThread.start();
       }
