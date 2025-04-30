@@ -52,7 +52,7 @@ public class ClientHandler implements Runnable {
       // Notify others
       String joinMessage = myClient.username + " has joined the chat";
       System.out.println(joinMessage);
-      for (Client c : clientList) {
+      for Client c : clientList) {
         if (c != myClient) {
           DataOutputStream output = new DataOutputStream(c.connectionSock.getOutputStream());
           output.writeBytes(joinMessage + "\n");
@@ -107,7 +107,6 @@ public class ClientHandler implements Runnable {
               }
               break;
           }
-
         } else {
           // Disconnected
           System.out.println("Closing connection for socket " + myClient.connectionSock);
@@ -116,7 +115,6 @@ public class ClientHandler implements Runnable {
           break;
         }
       }
-
     } catch (Exception e) {
       System.out.println("Error: " + e.toString());
       for (int i = 0; i < clientList.size(); i++) {
