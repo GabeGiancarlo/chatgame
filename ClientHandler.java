@@ -52,7 +52,7 @@ public class ClientHandler implements Runnable {
       // Notify others
       String joinMessage = myClient.username + " has joined the chat";
       System.out.println(joinMessage);
-      for Client c : clientList) {
+      for (Client c : clientList) {
         if (c != myClient) {
           DataOutputStream output = new DataOutputStream(c.connectionSock.getOutputStream());
           output.writeBytes(joinMessage + "\n");
