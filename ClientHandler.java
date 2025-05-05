@@ -4,15 +4,10 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
-/**
- * ClientHandler.java This class handles communication between the client
- * and the server. It runs in a separate thread but has a link to a common list of clients to
- * handle broadcast.
- */
 public class ClientHandler implements Runnable {
     private Client myClient = null;
     private ArrayList<Client> clientList;
-    private static boolean hostAssigned = false; // Track if host has been assigned
+    private static boolean hostAssigned = false;
 
     ClientHandler(Client client, ArrayList<Client> clientList) {
         this.myClient = client;
@@ -34,25 +29,22 @@ public class ClientHandler implements Runnable {
             DataOutputStream clientOutput =
                 new DataOutputStream(myClient.connectionSock.getOutputStream());
 
-            // Check if this is the first client (host)
+            // Assign host
             synchronized (clientList) {
                 if (clientList.isEmpty() && !hostAssigned) {
                     myClient.username = "host";
                     hostAssigned = true;
                     clientList.add(myClient);
-                    
-                    // Send host instructions
-                    String hostInstructions = 
+                    String hostInstructions =
                         "Welcome, host! You are the game host.\n" +
                         "To ask a question: Type your question followed by '@points' (e.g., 'What is 2+2? @5')\n" +
                         "To assign points: Type '@username points' (e.g., '@player1 5')\n" +
                         "Use SCORES to view all players' scores\n" +
                         getCommandList();
                     clientOutput.writeBytes(hostInstructions + "\n");
-                    
                     System.out.println("Host has joined the chat");
                 } else {
-                    // Non-host client username prompt
+                    // Prompt for unique username
                     clientOutput.writeBytes("Welcome to the chat! Please enter your username:\n");
                     String username;
                     boolean isUsernameTaken;
@@ -75,11 +67,8 @@ public class ClientHandler implements Runnable {
 
                     myClient.username = username;
                     clientList.add(myClient);
-                    
-                    // Notify client of accepted username and send commands
                     clientOutput.writeBytes("Username '" + username + "' accepted!\n" + getCommandList() + "\n");
-                    
-                    // Notify others
+
                     String joinMessage = myClient.username + " has joined the chat";
                     System.out.println(joinMessage);
                     for (Client c : clientList) {
@@ -91,60 +80,105 @@ public class ClientHandler implements Runnable {
                 }
             }
 
+            // Main loop
             while (true) {
                 String clientText = clientInput.readLine();
 
                 if (clientText != null) {
                     System.out.println("Received from " + myClient.username + ": " + clientText);
-                    String input = clientText.trim().toLowerCase();
+                    String input = clientText.trim();
 
-                    switch (input) {
-                        case "who?":
-                            StringBuilder userList = new StringBuilder("Connected users:\n");
-                            for (Client c : clientList) {
-                                userList.append(c.username).append("\n");
-                            }
-                            clientOutput.writeBytes(userList.toString() + "\n");
-                            break;
+                    // WHO command
+                    if (input.equalsIgnoreCase("who?")) {
+                        StringBuilder userList = new StringBuilder("Connected users:\n");
+                        for (Client c : clientList) {
+                            userList.append(c.username).append("\n");
+                        }
+                        clientOutput.writeBytes(userList.toString() + "\n");
+                        continue;
+                    }
 
-                        case "scores":
-                            // Placeholder for SCORES command (to be implemented by teammate)
-                            clientOutput.writeBytes("Scores feature not yet implemented.\n");
-                            break;
+                    // SCORES command
+                    if (input.equalsIgnoreCase("scores")) {
+                        StringBuilder scores = new StringBuilder("Current scores:\n");
+                        for (Client c : clientList) {
+                            scores.append(c.username).append(": ").append(c.score).append(" points\n");
+                        }
+                        for (Client c : clientList) {
+                            DataOutputStream output = new DataOutputStream(c.connectionSock.getOutputStream());
+                            output.writeBytes(scores.toString());
+                        }
+                        continue;
+                    }
 
-                        case "goodbye":
-                            String exitMessage = myClient.username + " has left the chat";
-                            System.out.println(exitMessage);
-                            for (Client c : new ArrayList<>(clientList)) {
-                                if (c != myClient) {
-                                    try {
-                                        DataOutputStream output =
-                                            new DataOutputStream(c.connectionSock.getOutputStream());
-                                        output.writeBytes(exitMessage + "\n");
-                                    } catch (IOException e) {
-                                        clientList.remove(c);
-                                    }
-                                }
-                            }
-                            if (myClient.username.equals("host")) {
-                                hostAssigned = false; // Allow new host if host leaves
-                            }
-                            clientList.remove(myClient);
-                            myClient.connectionSock.close();
-                            return;
-
-                        default:
-                            String messageWithUsername = myClient.username + ": " + clientText;
-                            for (Client c : clientList) {
-                                if (c != myClient) {
+                    // GOODBYE command
+                    if (input.equalsIgnoreCase("goodbye")) {
+                        String exitMessage = myClient.username + " has left the chat";
+                        System.out.println(exitMessage);
+                        for (Client c : new ArrayList<>(clientList)) {
+                            if (c != myClient) {
+                                try {
                                     DataOutputStream output =
                                         new DataOutputStream(c.connectionSock.getOutputStream());
-                                    output.writeBytes(messageWithUsername + "\n");
+                                    output.writeBytes(exitMessage + "\n");
+                                } catch (IOException e) {
+                                    clientList.remove(c);
                                 }
                             }
-                            break;
+                        }
+                        if (myClient.username.equals("host")) {
+                            hostAssigned = false;
+                        }
+                        clientList.remove(myClient);
+                        myClient.connectionSock.close();
+                        return;
                     }
+
+                    // Point-award command (only host)
+                    if (myClient.username.equals("host") && input.startsWith("@")) {
+                        String[] parts = input.split(" ");
+                        if (parts.length == 2) {
+                            String targetUsername = parts[0].substring(1);
+                            try {
+                                int points = Integer.parseInt(parts[1]);
+                                boolean found = false;
+                                for (Client c : clientList) {
+                                    if (c.username.equalsIgnoreCase(targetUsername)) {
+                                        c.score += points;
+                                        clientOutput.writeBytes("Awarded " + points + " points to " + c.username + "\n");
+                                        for (Client cl : clientList) {
+                                            DataOutputStream out = new DataOutputStream(cl.connectionSock.getOutputStream());
+                                            out.writeBytes("Host awarded " + points + " points to " + c.username + "!\n");
+                                        }
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) {
+                                    clientOutput.writeBytes("User not found.\n");
+                                }
+                            } catch (NumberFormatException e) {
+                                clientOutput.writeBytes("Invalid point value.\n");
+                            }
+                            continue;
+                        } else {
+                            clientOutput.writeBytes("Invalid format. Use @username points (e.g., @bob 5)\n");
+                            continue;
+                        }
+                    }
+
+                    // Broadcast regular messages
+                    String messageWithUsername = myClient.username + ": " + input;
+                    for (Client c : clientList) {
+                        if (c != myClient) {
+                            DataOutputStream output =
+                                new DataOutputStream(c.connectionSock.getOutputStream());
+                            output.writeBytes(messageWithUsername + "\n");
+                        }
+                    }
+
                 } else {
+                    // Client disconnected
                     System.out.println("Closing connection for socket " + myClient.connectionSock);
                     if (myClient.username.equals("host")) {
                         hostAssigned = false;
@@ -156,7 +190,7 @@ public class ClientHandler implements Runnable {
             }
         } catch (Exception e) {
             System.out.println("Error: " + e.toString());
-            if (myClient.username != null && myClient.username.equals("host")) {
+            if (myClient.username.equals("host")) {
                 hostAssigned = false;
             }
             clientList.remove(myClient);
