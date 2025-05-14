@@ -82,22 +82,6 @@ public class ClientHandler implements Runnable {
             }
           }
         }
-      } while (isUsernameTaken);
-
-      // Assign unique username to myClient
-      myClient.username = username;
-
-      // Add to client list
-      clientList.add(myClient);
-
-      // Notify others
-      String joinMessage = myClient.username + " has joined the chat";
-      System.out.println(joinMessage);
-      for (Client c : clientList) {
-        if (c != myClient) {
-          DataOutputStream output = new DataOutputStream(c.connectionSock.getOutputStream());
-          output.writeBytes(joinMessage + "\n");
-        }
       }
 
       // Main loop
