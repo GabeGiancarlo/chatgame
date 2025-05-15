@@ -1,6 +1,9 @@
-import java.net.Socket;
 import java.io.DataOutputStream;
+import java.net.Socket;
 
+/**
+ * Represents a connected client with a socket and username.
+ */
 public class Client {
   public Socket connectionSock = null;
   public String username = "";

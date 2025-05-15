@@ -20,10 +20,17 @@ public class MtServer {
   // Maintain list of all clients for broadcast
   private ArrayList<Client> clientList;
 
+  /**
+   * Constructs a new MtServer with an empty client list.
+   */
   public MtServer() {
     clientList = new ArrayList<Client>();
   }
 
+  /**
+   * Waits for incoming client connections on port 9004 and starts a new ClientHandler thread for
+   * each connected client.
+   */
   private void getConnection() {
     // Wait for a connection from the client
     try {
@@ -48,6 +55,11 @@ public class MtServer {
     }
   }
 
+  /**
+   * Starts the chat server by accepting incoming client connections.
+   *
+   * @param args Command-line arguments (not used).
+   */
   public static void main(String[] args) {
     MtServer server = new MtServer();
     server.getConnection();
