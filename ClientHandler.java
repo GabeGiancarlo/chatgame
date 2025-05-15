@@ -4,6 +4,9 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 
+/**
+ * Handles a single client in the chat game.
+ */
 public class ClientHandler implements Runnable {
   private Client myClient = null;
   private ArrayList<Client> clientList;
@@ -21,6 +24,9 @@ public class ClientHandler implements Runnable {
         + "goodbye - Exit the chat\n";
   }
 
+  /**
+   * Main execution of the client handler thread.
+   */
   public void run() {
     try {
       System.out.println("Connection made with socket " + myClient.connectionSock);
@@ -28,6 +34,10 @@ public class ClientHandler implements Runnable {
           new BufferedReader(new InputStreamReader(myClient.connectionSock.getInputStream()));
       DataOutputStream clientOutput =
           new DataOutputStream(myClient.connectionSock.getOutputStream());
+      myClient.output = clientOutput;
+
+    String username = null;
+    boolean isUsernameTaken = false;
 
       // Assign host
       synchronized (clientList) {
@@ -47,8 +57,6 @@ public class ClientHandler implements Runnable {
         } else {
           // Prompt for unique username
           clientOutput.writeBytes("Welcome to the chat! Please enter your username:\n");
-          String username;
-          boolean isUsernameTaken;
           do {
             username = clientInput.readLine();
             isUsernameTaken = false;
@@ -217,3 +225,4 @@ public class ClientHandler implements Runnable {
     }
   }
 }
+
